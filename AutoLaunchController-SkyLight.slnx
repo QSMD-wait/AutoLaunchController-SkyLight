@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/AutoLaunchController.Application/AutoLaunchController.Application.csproj" />
+  <Project Path="src/AutoLaunchController.Core/AutoLaunchController.Core.csproj" />
+  <Project Path="src/AutoLaunchController.Infrastructure/AutoLaunchController.Infrastructure.csproj" />
+  <Project Path="src/AutoLaunchController/AutoLaunchController.csproj" />
+</Solution>
