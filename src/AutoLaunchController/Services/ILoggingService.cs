@@ -1,20 +1,17 @@
 using Serilog;
-using System; // 添加System命名空间以使用Exception类型
 
 namespace AutoLaunchController.Services
 {
     /// <summary>
-    /// 日志服务接口，用于跨层提供日志功能而不违反架构约束
+    /// 提供一个工厂，用于为不同的服务或视图模型创建带有正确上下文的日志记录器。
     /// </summary>
     public interface ILoggingService
     {
-        ILogger Logger { get; }
-        void LogInformation(string messageTemplate, params object[] properties);
-        void LogWarning(string messageTemplate, params object[] properties);
-        void LogError(string messageTemplate, params object[] properties);
-        void LogError(Exception exception, string messageTemplate, params object[] properties);
-        void LogDebug(string messageTemplate, params object[] properties);
-        void LogCritical(string messageTemplate, params object[] properties);
-        void LogCritical(Exception exception, string messageTemplate, params object[] properties);
+        /// <summary>
+        /// 为指定的源类型创建一个日志记录器。
+        /// </summary>
+        /// <typeparam name="TSource">日志来源的类型。</typeparam>
+        /// <returns>一个配置了正确来源上下文的 ILogger 实例。</returns>
+        ILogger ForContext<TSource>();
     }
 }
