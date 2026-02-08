@@ -48,28 +48,30 @@ namespace AutoLaunchController.Infrastructure.Configuration
         /// </remarks>
         public static AppSettings LoadOrInitialize()
         {
-            if (File.Exists(ConfigFilePath))
-            {
-                try
-                {
-                    var json = File.ReadAllText(ConfigFilePath);
-                    // 如果文件内容为空，也视为需要初始化的情况
-                    if (string.IsNullOrWhiteSpace(json))
-                    {
-                        return CreateDefaultAndSave();
-                    }
-                    var settings = JsonSerializer.Deserialize<AppSettings>(json);
-                    return settings ?? CreateDefaultAndSave();
-                }
-                catch (Exception ex) // 捕获读取或反序列化时可能发生的任何异常
-                {
-                    Log.ForContext(typeof(ConfigManager)).Warning(ex, "加载 settings.json 失败或文件已损坏。已重新创建默认配置文件。");
-                    return CreateDefaultAndSave(); // 如果解析失败，就返回一份默认配置
-                }
-            }
-            else
+            if (!File.Exists(ConfigFilePath))
             {
                 return CreateDefaultAndSave();
+            }
+
+            try
+            {
+                var json = File.ReadAllText(ConfigFilePath);
+                // The user's intended code uses Newtonsoft.Json, so we adapt it.
+                // Note: This requires adding 'using Newtonsoft.Json;' to the file.
+                var settings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(json);
+                if (settings == null)
+                {
+                    // 文件内容为空或格式不正确，重新创建
+                    Log.ForContext(typeof(ConfigManager)).Warning("settings.json 内容为空或格式不正确，将重新创建默认文件。");
+                    return CreateDefaultAndSave();
+                }
+                Log.ForContext(typeof(ConfigManager)).Information("配置文件 settings.json 加载成功。");
+                return settings;
+            }
+            catch (Exception ex)
+            {
+                Log.ForContext(typeof(ConfigManager)).Error(ex, "配置文件 settings.json 解析失败，将重新创建默认文件。");
+                return CreateDefaultAndSave(); // 保持健壮性，解析失败时创建并返回默认配置
             }
         }
 
@@ -91,7 +93,16 @@ namespace AutoLaunchController.Infrastructure.Configuration
         private static AppSettings CreateDefaultAndSave()
         {
             var defaultSettings = new AppSettings();
-            Save(defaultSettings);
+            try
+            {
+                Save(defaultSettings);
+                Log.ForContext(typeof(ConfigManager)).Information("未找到或无法解析 settings.json，已成功创建并加载默认配置文件。");
+            }
+            catch (Exception ex)
+            {
+                // 即使保存失败，也要返回一个默认实例，保证程序能继续运行
+                Log.ForContext(typeof(ConfigManager)).Error(ex, "创建默认 settings.json 文件时发生严重错误。应用程序将使用临时默认配置运行。");
+            }
             return defaultSettings;
         }
     }

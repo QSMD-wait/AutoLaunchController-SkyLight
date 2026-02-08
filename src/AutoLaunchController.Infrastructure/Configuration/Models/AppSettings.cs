@@ -31,5 +31,15 @@ namespace AutoLaunchController.Infrastructure.Configuration.Models
         /// 获取或设置是否在开机时自动启动。true 表示应用程序会在操作系统启动时自动运行；false 表示需要手动启动。默认值为 false。
         /// </summary>
         public bool StartOnSystemBoot { get; set; } = false;
+
+        /// <summary>
+        /// 获取或设置日志文件的最长保留天数。超过此天数的旧日志文件（包括压缩的 .gz 文件）将在程序启动时被自动删除。默认值为 180 天。
+        /// </summary>
+        public int LogRetentionDays { get; set; } = 180;
+
+        /// <summary>
+        /// 获取或设置日志目录允许占用的最大磁盘空间（单位：MB）。如果目录总大小超过此限制，程序启动时将从最旧的日志文件开始删除，直到满足空间要求。默认值为 512 MB。
+        /// </summary>
+        public int MaxLogDirectorySizeMB { get; set; } = 512;
     }
 }

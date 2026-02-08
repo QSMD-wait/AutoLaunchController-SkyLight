@@ -70,5 +70,6 @@ public class MainViewModel : BaseViewModel
         _logger.Warning("这是一条 Warning 级别的测试日志。");
         _logger.Error("这是一条 Error 级别的测试日志。");
         _logger.Fatal("这是一条 Fatal 级别的测试日志。");
+        
     }
 }
