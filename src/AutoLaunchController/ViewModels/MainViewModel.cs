@@ -1,5 +1,7 @@
+using AutoLaunchController.Core.Services;
 using AutoLaunchController.Services;
 using Serilog;
+using System;
 using System.Windows.Input;
 
 namespace AutoLaunchController.ViewModels;
@@ -21,6 +23,7 @@ namespace AutoLaunchController.ViewModels;
 public class MainViewModel : BaseViewModel
 {
     private readonly ILogger _logger;
+    private readonly IDialogService _dialogService;
 
     /// <summary>
     /// 获取主窗口的标题。
@@ -35,12 +38,13 @@ public class MainViewModel : BaseViewModel
     /// <summary>
     /// 初始化 <see cref="MainViewModel"/> 类的新实例。
     /// </summary>
-    public MainViewModel() : this(new LoggingService()) { }
+    public MainViewModel() : this(new LoggingService(), new DialogService()) { }
 
     /// <summary>
     /// 初始化 <see cref="MainViewModel"/> 类的新实例。
     /// </summary>
     /// <param name="loggingServiceFactory">日志服务工厂。</param>
+    /// <param name="dialogService">对话框服务。</param>
     /// <remarks>
     /// <para>
     ///     [使用场景]：在需要自定义日志服务或进行单元测试时使用，支持依赖注入。
@@ -53,23 +57,22 @@ public class MainViewModel : BaseViewModel
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException">当 <paramref name="loggingServiceFactory"/> 为 null 时抛出。</exception>
-    public MainViewModel(ILoggingService loggingServiceFactory)
+    public MainViewModel(ILoggingService loggingServiceFactory, IDialogService dialogService)
     {
+        _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        
         // 通过工厂为 MainViewModel 创建专属的日志记录器
-        _logger = loggingServiceFactory.ForContext<MainViewModel>();
+        _logger = loggingServiceFactory.ForContext<MainViewModel>() ?? throw new ArgumentNullException(nameof(loggingServiceFactory));
         _logger.Information("MainViewModel 初始化完成，标题: {Title}", Title);
 
         // 初始化命令
-        TestLogCommand = new RelayCommand(TestLogOutput);
+        TestLogCommand = new RelayCommand(TestDialogOutput);
     }
 
-    private void TestLogOutput(object? parameter)
+    private void TestDialogOutput(object? parameter)
     {
-        _logger.Debug("这是一条 Debug 级别的测试日志。");
-        _logger.Information("这是一条 Information 级别的测试日志。");
-        _logger.Warning("这是一条 Warning 级别的测试日志。");
-        _logger.Error("这是一条 Error 级别的测试日志。");
-        _logger.Fatal("这是一条 Fatal 级别的测试日志。");
-        
+        _logger.Information("准备通过 IDialogService 显示测试弹窗...");
+        _dialogService.ShowMessageBox("测试弹窗", "这是一个通过MVVM模式弹出的窗口喵！");
+        _logger.Information("测试弹窗显示完毕。");
     }
 }

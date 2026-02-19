@@ -2,6 +2,8 @@ using System.Windows;
 using Serilog;
 using System.Text;
 using System;
+using AutoLaunchController.Core.Services;
+using AutoLaunchController.Infrastructure.Application;
 using AutoLaunchController.Services;
 using AutoLaunchController.Infrastructure.Bootstrap;
 using AutoLaunchController.Infrastructure.Configuration;
@@ -26,6 +28,7 @@ namespace AutoLaunchController;
 public partial class App : Application
 {
     private ILoggingService? _loggingService;
+    private IDialogService? _dialogService;
     private ILogger? _logger;
 
     /// <summary>
@@ -57,22 +60,38 @@ public partial class App : Application
 
         // 3. 根据配置初始化日志系统
         LogManager.Initialize(appSettings);
-        // --- 初始化完成 ---
-
-        // 创建日志服务工厂实例 (用于依赖注入)
+        
+        // 4. 创建核心服务实例
         _loggingService = new LoggingService();
-
+        _dialogService = new DialogService();
+        
         // 使用工厂为 App 类自身创建一个日志记录器
         _logger = _loggingService.ForContext<App>();
 
+        // 5. 执行单例检查
+        bool shouldContinue = MutexManager.TryAcquire(appSettings.SingleInstance, () =>
+        {
+            _dialogService.ShowMessageBox("提示", "程序已经在运行了喵~");
+        });
+
+        if (!shouldContinue)
+        {
+            // 此处记录的日志是 App 级别的决策，是正确的。
+            _logger.Warning("单例检查失败，根据配置策略 ({Strategy})，应用程序将退出。", appSettings.SingleInstance.Strategy);
+            Shutdown();
+            return;
+        }
+        // --- 初始化完成 ---
+
         // 记录应用程序启动
-        _logger.Information("应用程序启动");
+        _logger.Information("应用程序启动，主窗口已创建并显示。");
 
         var mainWindow = new MainWindow();
         // 将主窗口的数据上下文设置为 MainViewModel 的一个新实例。
         // 这是连接视图(MainWindow)和视图模型(MainViewModel)的关键步骤，
-        // 使得XAML中的数据绑定能够正常工作。
-        mainWindow.DataContext = new ViewModels.MainViewModel(_loggingService);
+        // 使得XAML中的数据绑定能够正常工作。 
+        // 此处手动注入依赖
+        mainWindow.DataContext = new ViewModels.MainViewModel(_loggingService, _dialogService);
         mainWindow.Show();
         base.OnStartup(e);
     }
@@ -83,7 +102,8 @@ public partial class App : Application
     /// <param name="e">包含事件数据的 <see cref="ExitEventArgs"/>。</param>
     protected override void OnExit(ExitEventArgs e)
     {
-        _logger?.Information("应用程序退出");
+        _logger?.Information("应用程序正在退出...");
+        MutexManager.Release(); // 释放互斥锁
         LogManager.Shutdown(); // 使用我们封装的方法来关闭日志
         base.OnExit(e);
     }

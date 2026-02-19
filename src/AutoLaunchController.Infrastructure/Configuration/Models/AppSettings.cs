@@ -41,5 +41,76 @@ namespace AutoLaunchController.Infrastructure.Configuration.Models
         /// 获取或设置日志目录允许占用的最大磁盘空间（单位：MB）。如果目录总大小超过此限制，程序启动时将从最旧的日志文件开始删除，直到满足空间要求。默认值为 512 MB。
         /// </summary>
         public int MaxLogDirectorySizeMB { get; set; } = 512;
+
+        /// <summary>
+        /// 获取或设置应用程序的单例运行配置。
+        /// </summary>
+        public SingleInstanceSettings SingleInstance { get; set; } = new();
+    }
+
+    /// <summary>
+    /// 定义应用程序的单例（互斥）运行策略。
+    /// </summary>
+    public enum SingleInstanceStrategy
+    {
+        /// <summary>
+        /// 允许多个实例同时运行。
+        /// </summary>
+        AllowMultiple,
+
+        /// <summary>
+        /// 只允许一个实例。当新实例启动时，会弹出一个消息框提示用户，然后新实例将退出。
+        /// </summary>
+        ShowMessageAndExit,
+
+        /// <summary>
+        /// 只允许一个实例。当新实例启动时，它会不做任何提示并立即退出。
+        /// </summary>
+        SilentExit
+    }
+
+    /// <summary>
+    /// 包含与应用程序单例运行相关的所有配置。
+    /// </summary>
+    public class SingleInstanceSettings
+    {
+        /// <summary>
+        /// 获取或设置单例运行的策略。
+        /// 默认值为 <see cref="SingleInstanceStrategy.ShowMessageAndExit"/>。
+        /// </summary>
+        public SingleInstanceStrategy Strategy { get; set; } = SingleInstanceStrategy.ShowMessageAndExit;
+
+        // ReSharper disable once UnusedMember.Global
+        // 预留给未来实现更复杂的消息通知机制
+        public MessageConfiguration MessageConfig { get; set; } = new();
+    }
+
+    /// <summary>
+    /// 为 ShowMessageAndExit 策略预留的详细消息配置。
+    /// </summary>
+    /// <remarks>
+    /// 当前版本暂未使用，为未来扩展保留。
+    /// </remarks>
+    public class MessageConfiguration
+    {
+        /// <summary>
+        /// 消息窗口的样式，例如 "MessageBox" 或 "Toast"。
+        /// </summary>
+        public string Style { get; set; } = "MessageBox";
+
+        /// <summary>
+        /// 窗口是否自动关闭。
+        /// </summary>
+        public bool AutoClose { get; set; } = false;
+
+        /// <summary>
+        /// 自动关闭的延迟时间（毫秒）。
+        /// </summary>
+        public int DurationMilliseconds { get; set; } = 3000;
+
+        /// <summary>
+        /// 是否确保只显示一个提示窗口（防止快速点击时弹出多个）。
+        /// </summary>
+        public bool EnsureSingleWindow { get; set; } = true;
     }
 }
