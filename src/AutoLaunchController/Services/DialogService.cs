@@ -1,5 +1,6 @@
 using System.Windows;
 using AutoLaunchController.Core.Services;
+using iNKORE.UI.WPF.Modern.Controls;
 
 namespace AutoLaunchController.Services;
 
@@ -22,17 +23,26 @@ namespace AutoLaunchController.Services;
 public class DialogService : IDialogService
 {
     /// <summary>
-    /// 使用WPF的 <see cref="MessageBox"/> 来显示一个标准的消息框。
+    /// 使用 iNKORE 的 <see cref="ModernMessageBox"/> 来显示一个现代风格的消息框。
     /// </summary>
     /// <param name="title">窗口标题。</param>
     /// <param name="message">显示的消息。</param>
     public void ShowMessageBox(string title, string message)
     {
-        // 由于此类位于UI项目中，因此可以安全地访问和使用WPF的UI组件。
         // Application.Current.Dispatcher.Invoke确保了即使调用来自非UI线程，弹窗也能在正确的线程上显示。
         Application.Current.Dispatcher.Invoke(() =>
         {
-            MessageBox.Show(Application.Current.MainWindow, message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            // 直接使用 iNKORE.UI.WPF.Modern.Controls.MessageBox 的静态 Show 方法。
+            // 这样更简洁，也符合库的设计。
+            // 为了避免与 System.Windows.MessageBox 冲突，这里使用了完整的命名空间。
+            // 根据编译错误提示，最匹配的重载签名是 (string message, string title, MessageBoxButton button, MessageBoxImage icon)。
+            // 我们严格按照此签名来调用。
+            iNKORE.UI.WPF.Modern.Controls.MessageBox.Show(
+                message,
+                title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
+            );
         });
     }
 }
