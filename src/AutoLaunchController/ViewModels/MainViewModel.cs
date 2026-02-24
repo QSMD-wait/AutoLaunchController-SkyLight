@@ -69,10 +69,10 @@ public class MainViewModel : BaseViewModel
         TestLogCommand = new RelayCommand(TestDialogOutput);
     }
 
-    private void TestDialogOutput(object? parameter)
+    private async void TestDialogOutput(object? parameter)
     {
         _logger.Information("准备通过 IDialogService 显示测试弹窗...");
-        _dialogService.ShowMessageBox("测试弹窗", "这是一个通过MVVM模式弹出的窗口喵！");
+        await _dialogService.ShowAsync("测试弹窗", "这是一个通过MVVM模式弹出的窗口喵！");
         _logger.Information("测试弹窗显示完毕。");
     }
 }

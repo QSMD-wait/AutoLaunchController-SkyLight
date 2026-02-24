@@ -16,6 +16,6 @@
         <TextBlock Text="AutoLaunchController - SkyLight" FontSize="24" FontWeight="Bold" TextAlignment="Center"/>
         <TextBlock Text="Fluent Design, by iNKORE.UI.WPF.Modern form NuGet package." FontSize="20" TextAlignment="Center"/>
 
-        <Button Content="测试日志输出" Command="{Binding TestLogCommand}" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+        <Button Content="测试弹窗服务" Command="{Binding TestLogCommand}" HorizontalAlignment="Center" Margin="0,20,0,0"/>
     </ikw:SimpleStackPanel>
 </Window>

@@ -1,48 +1,107 @@
+using System.Media;
+using System.Threading.Tasks;
 using System.Windows;
 using AutoLaunchController.Core.Services;
-using iNKORE.UI.WPF.Modern.Controls;
+using AutoLaunchController.Core.Services.Dialogs;
+using ModernMessageBox = iNKORE.UI.WPF.Modern.Controls.MessageBox;
 
 namespace AutoLaunchController.Services;
 
 /// <summary>
 /// <see cref="IDialogService"/> 接口的WPF平台具体实现。
 /// </summary>
-/// <remarks>
-/// <para>
-///     [使用场景]：在WPF应用程序的UI层，作为 <see cref="IDialogService"/> 接口的具体提供者。
-/// </para>
-/// <para>
-///     [工作原理]：您可以把这个类想象成“连接着真实酒柜的对讲机”。当ViewModel通过接口（“对讲机按钮”）请求弹窗时，
-///     这个类会执行具体的WPF弹窗操作（“去酒柜拿酒并展示给客人”）。
-/// </para>
-/// <para>
-///     [最佳实践]：此类应被注册为 <see cref="IDialogService"/> 的单例实现。
-///     所有与WPF窗口系统相关的弹窗逻辑都应封装在此类中。
-/// </para>
-/// </remarks>
 public class DialogService : IDialogService
 {
-    /// <summary>
-    /// 使用 iNKORE 的 <see cref="ModernMessageBox"/> 来显示一个现代风格的消息框。
-    /// </summary>
-    /// <param name="title">窗口标题。</param>
-    /// <param name="message">显示的消息。</param>
-    public void ShowMessageBox(string title, string message)
+    public Task<DialogResult> ShowAsync(MessageBoxParameters parameters)
     {
-        // Application.Current.Dispatcher.Invoke确保了即使调用来自非UI线程，弹窗也能在正确的线程上显示。
-        Application.Current.Dispatcher.Invoke(() =>
+        // 使用 Task.Run 将弹窗操作包裹起来，以便可以 await，同时通过 Dispatcher.Invoke 确保 UI 操作在主线程执行。
+        return Task.Run(() => Application.Current.Dispatcher.Invoke(() =>
         {
-            // 直接使用 iNKORE.UI.WPF.Modern.Controls.MessageBox 的静态 Show 方法。
-            // 这样更简洁，也符合库的设计。
-            // 为了避免与 System.Windows.MessageBox 冲突，这里使用了完整的命名空间。
-            // 根据编译错误提示，最匹配的重载签名是 (string message, string title, MessageBoxButton button, MessageBoxImage icon)。
-            // 我们严格按照此签名来调用。
-            iNKORE.UI.WPF.Modern.Controls.MessageBox.Show(
-                message,
-                title,
-                MessageBoxButton.OK,
-                MessageBoxImage.Information
+            var wpfResult = ModernMessageBox.Show(
+                parameters.Message,
+                parameters.Title,
+                TranslateButtons(parameters.Buttons),
+                TranslateIcon(parameters.Icon),
+                TranslateDefaultButton(parameters.DefaultButton),
+                TranslateSound(parameters.Sound, parameters.Icon)
             );
-        });
+
+            return TranslateResult(wpfResult);
+        }));
     }
+
+    public Task ShowAsync(string title, string message, DialogIcon icon = DialogIcon.Information)
+    {
+        var parameters = new MessageBoxParameters(title, message)
+        {
+            Icon = icon
+        };
+        // 调用更核心的 ShowAsync 方法，并忽略返回值。
+        return ShowAsync(parameters);
+    }
+
+    #region Private Translation Helpers
+
+    private MessageBoxButton TranslateButtons(DialogButtonSet buttons) => buttons switch
+    {
+        DialogButtonSet.OK => MessageBoxButton.OK,
+        DialogButtonSet.OKCancel => MessageBoxButton.OKCancel,
+        DialogButtonSet.YesNo => MessageBoxButton.YesNo,
+        DialogButtonSet.YesNoCancel => MessageBoxButton.YesNoCancel,
+        _ => MessageBoxButton.OK
+    };
+
+    private MessageBoxImage TranslateIcon(DialogIcon icon) => icon switch
+    {
+        DialogIcon.None => MessageBoxImage.None,
+        DialogIcon.Information => MessageBoxImage.Information,
+        DialogIcon.Warning => MessageBoxImage.Warning,
+        DialogIcon.Error => MessageBoxImage.Error,
+        DialogIcon.Question => MessageBoxImage.Question,
+        _ => MessageBoxImage.None
+    };
+
+    private MessageBoxResult TranslateDefaultButton(DialogDefaultButton defaultButton) => defaultButton switch
+    {
+        DialogDefaultButton.Primary => MessageBoxResult.OK, // 假设 OK/Yes 是主要按钮
+        DialogDefaultButton.Secondary => MessageBoxResult.Cancel, // 假设 Cancel/No 是次要按钮
+        _ => MessageBoxResult.None
+    };
+
+    private SystemSound? TranslateSound(DialogSound sound, DialogIcon icon)
+    {
+        return sound switch
+        {
+            DialogSound.None => null,
+            DialogSound.Auto => GetSoundFromIcon(icon),
+            DialogSound.Beep => SystemSounds.Beep,
+            DialogSound.Exclamation => SystemSounds.Exclamation,
+            DialogSound.Hand => SystemSounds.Hand,
+            DialogSound.Question => SystemSounds.Question,
+            _ => null
+        };
+    }
+
+    private SystemSound? GetSoundFromIcon(DialogIcon icon)
+    {
+        return icon switch
+        {
+            DialogIcon.Warning => SystemSounds.Exclamation,
+            DialogIcon.Error => SystemSounds.Hand,
+            DialogIcon.Question => SystemSounds.Question,
+            _ => SystemSounds.Beep // 默认为普通提示音
+        };
+    }
+
+    private DialogResult TranslateResult(MessageBoxResult result) => result switch
+    {
+        MessageBoxResult.None => DialogResult.None,
+        MessageBoxResult.OK => DialogResult.OK,
+        MessageBoxResult.Cancel => DialogResult.Cancel,
+        MessageBoxResult.Yes => DialogResult.Yes,
+        MessageBoxResult.No => DialogResult.No,
+        _ => DialogResult.None
+    };
+
+    #endregion
 }

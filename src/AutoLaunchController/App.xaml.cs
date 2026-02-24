@@ -8,6 +8,7 @@ using AutoLaunchController.Services;
 using AutoLaunchController.Infrastructure.Bootstrap;
 using AutoLaunchController.Infrastructure.Configuration;
 using AutoLaunchController.Infrastructure.Logging;
+using AutoLaunchController.Core.Services.Dialogs;
 
 namespace AutoLaunchController;
 
@@ -46,7 +47,7 @@ public partial class App : Application
     ///     [最佳实践]：保持初始化流程的顺序性和幂等性。每个初始化步骤都应该是独立的，并且可以安全地重复执行而不会产生副作用。
     /// </para>
     /// </remarks>
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         // 设置控制台输出编码为UTF-8，防止中文乱码
         Console.OutputEncoding = Encoding.UTF8;
@@ -69,13 +70,24 @@ public partial class App : Application
         _logger = _loggingService.ForContext<App>();
 
         // 5. 执行单例检查
-        bool shouldContinue = MutexManager.TryAcquire(appSettings.SingleInstance, () =>
+        if (!MutexManager.TryAcquire(appSettings.SingleInstance))
         {
-            _dialogService.ShowMessageBox("提示", "程序已经在运行了喵~");
-        });
-
-        if (!shouldContinue)
-        {
+            // 如果是重复实例，根据策略决定是否弹窗
+            if (appSettings.SingleInstance.Strategy == Infrastructure.Configuration.Models.SingleInstanceStrategy.ShowMessageAndExit)
+            {
+                // 使用 await 等待弹窗关闭，确保用户看到信息。
+                // 这是 OnStartup 必须是 async void 的原因。
+                var parameters = new MessageBoxParameters("提示", "程序已经在运行了喵~")
+                {
+                    Icon = DialogIcon.Information
+                };
+                
+                if (_dialogService != null)
+                {
+                    await _dialogService.ShowAsync(parameters);
+                }
+            }
+            
             // 此处记录的日志是 App 级别的决策，是正确的。
             _logger.Warning("单例检查失败，根据配置策略 ({Strategy})，应用程序将退出。", appSettings.SingleInstance.Strategy);
             Shutdown();
